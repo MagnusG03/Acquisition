@@ -13,6 +13,8 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public float gravity = -9.81f;
     public float jumpHeight = 1f;
     private bool jumpRequested = false;
+    private bool sprintRequested = false;
+    private bool isSprinting = false;
 
     private CharacterController controller;
     private PlayerControls controls;
@@ -25,8 +27,14 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public float airAcceleration = 15f;
     public float groundDeceleration = 75f;
     public float airDeceleration = 10f;
-    public float maxSpeed = 6f;
+    public float maxWalkSpeed = 5f;
+    public float maxSprintSpeed = 10f;
+    public float maxStamina = 100f;
+    public float staminaDrainRate = 15f;
+    public float staminaRegenRate = 2.5f;
+    private float currentStamina;
     private Vector3 currentVelocity = Vector3.zero;
+    private Vector3 lastPosition;
 
     void Awake()
     {
@@ -42,13 +50,16 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         controller = GetComponent<CharacterController>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        currentStamina = maxStamina;
+        lastPosition = transform.position;
     }
 
     void Update()
     {
         HandleLook();
-        HandleMovement();
+        HandleSprint();
         HandleJump();
+        HandleMovement();
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -67,6 +78,18 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             jumpRequested = true;
     }
 
+    public void OnSprint(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            sprintRequested = true;
+        }
+        else
+        {
+            sprintRequested = false;
+        }
+    }
+
     private void HandleLook()
     {
         float mouseX = lookInput.x * mouseSensitivity;
@@ -83,21 +106,24 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     {
         // 1) Build input and desired velocity
         Vector3 inputDirection = new Vector3(moveInput.x, 0f, moveInput.y);
-        Vector3 desiredVelocity = transform.TransformDirection(inputDirection.normalized) * maxSpeed;
+        Vector3 desiredWalkVelocity = transform.TransformDirection(inputDirection.normalized) * maxWalkSpeed;
+        Vector3 desiredSprintVelocity = transform.TransformDirection(inputDirection.normalized) * maxSprintSpeed;
+
+        lastPosition = transform.position;
 
         // 2) If there’s input…
-        if (inputDirection.magnitude > 0.1f)
+        if (inputDirection.magnitude > 0.1f && !isSprinting)
         {
             if (controller.isGrounded)
             {
                 // 2a) Grounded: are we reversing?
-                float dot = Vector3.Dot(currentVelocity, desiredVelocity);
+                float dot = Vector3.Dot(currentVelocity, desiredWalkVelocity);
                 if (dot < 0f)
                 {
                     // Braking (fast deceleration)
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
-                        desiredVelocity,
+                        desiredWalkVelocity,
                         groundDeceleration * Time.deltaTime
                     );
                 }
@@ -106,7 +132,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     // Accelerating normally
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
-                        desiredVelocity,
+                        desiredWalkVelocity,
                         groundAcceleration * Time.deltaTime
                     );
                 }
@@ -116,7 +142,42 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 // 2b) In air with input: same accel rate
                 currentVelocity = Vector3.MoveTowards(
                     currentVelocity,
-                    desiredVelocity,
+                    desiredWalkVelocity,
+                    airAcceleration * Time.deltaTime
+                );
+            }
+        }
+        else if (inputDirection.magnitude > 0.1f && isSprinting)
+        {
+            if (controller.isGrounded)
+            {
+                // 2a) Grounded: are we reversing?
+                float dot = Vector3.Dot(currentVelocity, desiredSprintVelocity);
+                if (dot < 0f)
+                {
+                    // Braking (fast deceleration)
+                    currentVelocity = Vector3.MoveTowards(
+                        currentVelocity,
+                        desiredSprintVelocity,
+                        groundDeceleration * Time.deltaTime
+                    );
+                }
+                else
+                {
+                    // Accelerating normally
+                    currentVelocity = Vector3.MoveTowards(
+                        currentVelocity,
+                        desiredSprintVelocity,
+                        groundAcceleration * Time.deltaTime
+                    );
+                }
+            }
+            else
+            {
+                // 2b) In air with input: same accel rate
+                currentVelocity = Vector3.MoveTowards(
+                    currentVelocity,
+                    desiredSprintVelocity,
                     airAcceleration * Time.deltaTime
                 );
             }
@@ -151,6 +212,18 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             verticalVelocity = -2f;
         }
         verticalVelocity += gravity * Time.deltaTime;
+
+        // Drain stamina
+        if (currentVelocity.magnitude > 0f && isSprinting && lastPosition != transform.position)
+        {
+            currentStamina -= staminaDrainRate * Time.deltaTime;
+            currentStamina = Mathf.Max(currentStamina, 0f);
+        }
+        else
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Min(currentStamina, maxStamina);
+        }
     }
 
     private void HandleJump()
@@ -163,6 +236,19 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         else if (GetDistanceToGround() > 0.5f)
         {
             jumpRequested = false;
+        }
+    }
+
+    private void HandleSprint()
+    {
+        if (!isSprinting && sprintRequested && currentStamina > 0f && controller.isGrounded)
+        {
+            isSprinting = true;
+        }
+
+        if (!sprintRequested || currentStamina <= 0f)
+        {
+            isSprinting = false;
         }
     }
 

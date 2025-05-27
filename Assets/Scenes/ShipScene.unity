@@ -679,7 +679,11 @@ MonoBehaviour:
   airAcceleration: 15
   groundDeceleration: 75
   airDeceleration: 10
-  maxSpeed: 6
+  maxWalkSpeed: 5
+  maxSprintSpeed: 10
+  maxStamina: 100
+  staminaDrainRate: 15
+  staminaRegenRate: 2.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
