@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 {
     [Header("References")]
     public Transform cameraTransform;
+    public Transform playerModelTransform;
 
     [Header("Settings")]
     public float mouseSensitivity = 0.1f;
@@ -35,6 +36,16 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     private float currentStamina;
     private Vector3 currentVelocity = Vector3.zero;
     private Vector3 lastPosition;
+    private bool crouchRequested = false;
+    private bool isCrouching = false;
+    public float maxCrouchSpeed = 1.5f;
+    public float standHeight = 2f;
+    private float crouchHeight;
+    private float standCameraHeight;
+    private float crouchCameraHeight;
+    private float currentHeight;
+    private float currentCameraHeight;
+    public float crouchTransitionSpeed = 10f;
 
     void Awake()
     {
@@ -50,15 +61,36 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         controller = GetComponent<CharacterController>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        crouchHeight = standHeight * 0.5f;
+        crouchCameraHeight = crouchHeight * 0.8f;
+        standCameraHeight = standHeight * 0.9f;
+
+        currentHeight = standHeight;
+        currentCameraHeight = standCameraHeight;
+
+        controller.height = standHeight;
+        controller.center = new Vector3(0, standHeight / 2f, 0);
+
+        // Set height of player model
+        playerModelTransform.localPosition = new Vector3(0, -controller.height / 2f, 0);
+
+        // Set camera height
+        cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, standCameraHeight, cameraTransform.localPosition.z);
+
         currentStamina = maxStamina;
         lastPosition = transform.position;
     }
 
     void Update()
     {
+        sprintRequested = Keyboard.current.leftShiftKey.isPressed;
+        crouchRequested = Keyboard.current.leftCtrlKey.isPressed;
+
         HandleLook();
         HandleSprint();
         HandleJump();
+        HandleCrouch();
         HandleMovement();
     }
 
@@ -80,14 +112,10 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
     public void OnSprint(InputAction.CallbackContext context)
     {
-        if (context.performed)
-        {
-            sprintRequested = true;
-        }
-        else
-        {
-            sprintRequested = false;
-        }
+    }
+
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
     }
 
     private void HandleLook()
@@ -108,11 +136,12 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         Vector3 inputDirection = new Vector3(moveInput.x, 0f, moveInput.y);
         Vector3 desiredWalkVelocity = transform.TransformDirection(inputDirection.normalized) * maxWalkSpeed;
         Vector3 desiredSprintVelocity = transform.TransformDirection(inputDirection.normalized) * maxSprintSpeed;
+        Vector3 desiredCrouchVelocity = transform.TransformDirection(inputDirection.normalized) * maxCrouchSpeed;
 
         lastPosition = transform.position;
 
         // 2) If there’s input…
-        if (inputDirection.magnitude > 0.1f && !isSprinting)
+        if (inputDirection.magnitude > 0.1f && !isSprinting && !isCrouching)
         {
             if (controller.isGrounded)
             {
@@ -147,7 +176,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 );
             }
         }
-        else if (inputDirection.magnitude > 0.1f && isSprinting)
+        else if (inputDirection.magnitude > 0.1f && isSprinting && !isCrouching)
         {
             if (controller.isGrounded)
             {
@@ -178,6 +207,41 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 currentVelocity = Vector3.MoveTowards(
                     currentVelocity,
                     desiredSprintVelocity,
+                    airAcceleration * Time.deltaTime
+                );
+            }
+        }
+        else if (inputDirection.magnitude > 0.1f && isCrouching)
+        {
+            if (controller.isGrounded)
+            {
+                // 2a) Grounded: are we reversing?
+                float dot = Vector3.Dot(currentVelocity, desiredCrouchVelocity);
+                if (dot < 0f)
+                {
+                    // Braking (fast deceleration)
+                    currentVelocity = Vector3.MoveTowards(
+                        currentVelocity,
+                        desiredCrouchVelocity,
+                        groundDeceleration * Time.deltaTime
+                    );
+                }
+                else
+                {
+                    // Accelerating normally
+                    currentVelocity = Vector3.MoveTowards(
+                        currentVelocity,
+                        desiredCrouchVelocity,
+                        groundAcceleration * Time.deltaTime
+                    );
+                }
+            }
+            else
+            {
+                // 2b) In air with input: same accel rate
+                currentVelocity = Vector3.MoveTowards(
+                    currentVelocity,
+                    desiredCrouchVelocity,
                     airAcceleration * Time.deltaTime
                 );
             }
@@ -224,6 +288,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             currentStamina += staminaRegenRate * Time.deltaTime;
             currentStamina = Mathf.Min(currentStamina, maxStamina);
         }
+        //Debug.Log($"Sprint requested: {sprintRequested}");
     }
 
     private void HandleJump()
@@ -241,7 +306,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
     private void HandleSprint()
     {
-        if (!isSprinting && sprintRequested && currentStamina > 0f && controller.isGrounded)
+        if (!isSprinting && sprintRequested && currentStamina > 0f && controller.isGrounded && !isCrouching)
         {
             isSprinting = true;
         }
@@ -249,6 +314,37 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         if (!sprintRequested || currentStamina <= 0f)
         {
             isSprinting = false;
+        }
+    }
+
+    private void HandleCrouch()
+    {
+        float targetHeight = isCrouching ? crouchHeight : standHeight;
+        float targetCameraY = isCrouching ? crouchCameraHeight : standCameraHeight;
+
+        // Smoothly lerp height and camera
+        currentHeight = Mathf.Lerp(currentHeight, targetHeight, Time.deltaTime * crouchTransitionSpeed);
+        controller.height = currentHeight;
+        controller.center = new Vector3(0, currentHeight / 2f, 0);
+
+        currentCameraHeight = Mathf.Lerp(currentCameraHeight, targetCameraY, Time.deltaTime * crouchTransitionSpeed);
+        cameraTransform.localPosition = new Vector3(
+            cameraTransform.localPosition.x,
+            currentCameraHeight,
+            cameraTransform.localPosition.z
+        );
+
+        // Handle crouch input state
+        if (crouchRequested && !isCrouching)
+        {
+            isCrouching = true;
+        }
+        else if (!crouchRequested && isCrouching)
+        {
+            if (CanStandUp())
+            {
+                isCrouching = false;
+            }
         }
     }
 
@@ -263,5 +359,13 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         }
 
         return Mathf.Infinity;
+    }
+
+    private bool CanStandUp()
+    {
+        Vector3 top = controller.transform.position + controller.center + Vector3.up * (controller.height / 2f);
+        float distanceToCheck = standHeight - crouchHeight;
+
+        return !Physics.SphereCast(top, controller.radius, Vector3.up, out _, distanceToCheck);
     }
 }
