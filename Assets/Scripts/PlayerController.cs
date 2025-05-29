@@ -8,6 +8,11 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     [Header("References")]
     public Transform cameraTransform;
     public Transform playerModelTransform;
+    public Animator animator;
+
+    private readonly int hashIsWalking = Animator.StringToHash("isWalking");
+    private readonly int hashIsRunning = Animator.StringToHash("isRunning");
+    private readonly int hashIsJumping = Animator.StringToHash("isJumping");
 
     [Header("Settings")]
     public float mouseSensitivity = 0.1f;
@@ -28,8 +33,8 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public float airAcceleration = 15f;
     public float groundDeceleration = 75f;
     public float airDeceleration = 10f;
-    public float maxWalkSpeed = 5f;
-    public float maxSprintSpeed = 10f;
+    public float maxWalkSpeed = 4f;
+    public float maxSprintSpeed = 8f;
     public float maxStamina = 100f;
     public float staminaDrainRate = 15f;
     public float staminaRegenRate = 2.5f;
@@ -39,7 +44,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     private bool crouchRequested = false;
     private bool isCrouching = false;
     public float maxCrouchSpeed = 1.5f;
-    public float standHeight = 2f;
+    public float standHeight = 1.8f;
     private float crouchHeight;
     private float standCameraHeight;
     private float crouchCameraHeight;
@@ -73,7 +78,8 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         controller.center = new Vector3(0, standHeight / 2f, 0);
 
         // Set height of player model
-        playerModelTransform.localPosition = new Vector3(0, -controller.height / 2f, 0);
+        playerModelTransform.localPosition = Vector3.zero;
+        playerModelTransform.localScale = new Vector3(standHeight, standHeight, standHeight);
 
         // Set camera height
         cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, standCameraHeight, cameraTransform.localPosition.z);
@@ -92,6 +98,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         HandleJump();
         HandleCrouch();
         HandleMovement();
+        UpdateAnimatorBools();
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -288,7 +295,6 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             currentStamina += staminaRegenRate * Time.deltaTime;
             currentStamina = Mathf.Min(currentStamina, maxStamina);
         }
-        //Debug.Log($"Sprint requested: {sprintRequested}");
     }
 
     private void HandleJump()
@@ -367,5 +373,20 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         float distanceToCheck = standHeight - crouchHeight;
 
         return !Physics.SphereCast(top, controller.radius, Vector3.up, out _, distanceToCheck);
+    }
+
+        private void UpdateAnimatorBools()
+    {
+        bool grounded = controller.isGrounded;
+
+        bool walking = moveInput.magnitude > 0.1f && grounded && !isSprinting;
+
+        bool running = moveInput.magnitude > 0.1f && grounded && isSprinting;
+
+        bool jumping = !grounded;
+
+        animator.SetBool(hashIsWalking, walking);
+        animator.SetBool(hashIsRunning, running);
+        animator.SetBool(hashIsJumping, jumping);
     }
 }
