@@ -9,6 +9,9 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public Transform cameraTransform;
     public Transform playerModelTransform;
     public Animator animator;
+    public Transform[] spineBones;
+    private float maxSpineBendAngle = 30f;
+    private Quaternion[] _initialSpineRots;
 
     private readonly int hashIsWalking = Animator.StringToHash("isWalking");
     private readonly int hashIsRunning = Animator.StringToHash("isRunning");
@@ -34,7 +37,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public float groundDeceleration = 75f;
     public float airDeceleration = 10f;
     public float maxWalkSpeed = 4f;
-    public float maxSprintSpeed = 8f;
+    public float maxSprintSpeed = 6f;
     public float maxStamina = 100f;
     public float staminaDrainRate = 15f;
     public float staminaRegenRate = 2.5f;
@@ -86,6 +89,10 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
         currentStamina = maxStamina;
         lastPosition = transform.position;
+
+        _initialSpineRots = new Quaternion[spineBones.Length];
+        for (int i = 0; i < spineBones.Length; i++)
+            _initialSpineRots[i] = spineBones[i].localRotation;
     }
 
     void Update()
@@ -135,6 +142,17 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
+
+        float normalizedPitch = xRotation / 90f;
+        for (int i = 0; i < spineBones.Length; i++)
+        {
+            // weight bones so the top ones bend more
+            float weight = (float)(i + 1) / spineBones.Length;
+            float bendAngle = normalizedPitch * maxSpineBendAngle * weight;
+            // negative so that looking up (xRotation<0) bends spine backwards
+            spineBones[i].localRotation = _initialSpineRots[i] * 
+                                          Quaternion.Euler(bendAngle, 0f, 0f);
+        }
     }
 
     private void HandleMovement()
@@ -375,7 +393,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         return !Physics.SphereCast(top, controller.radius, Vector3.up, out _, distanceToCheck);
     }
 
-        private void UpdateAnimatorBools()
+    private void UpdateAnimatorBools()
     {
         bool grounded = controller.isGrounded;
 
