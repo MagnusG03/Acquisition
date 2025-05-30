@@ -256,6 +256,11 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!4 &274086831 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3699898355520597503, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -404,6 +409,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5495902117074765545, guid: 4d1d62c63714c784b9068b74092ed01b, type: 3}
+--- !u!4 &534705938 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1320411542853409003, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -525,6 +535,16 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 453903002}
   m_SourcePrefab: {fileID: 100100000, guid: 4d1d62c63714c784b9068b74092ed01b, type: 3}
+--- !u!4 &1173138207 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3050895055062153227, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1396656733 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8625725644046755650, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1618195930
 GameObject:
   m_ObjectHideFlags: 0
@@ -600,6 +620,13 @@ MonoBehaviour:
   cameraTransform: {fileID: 84607514}
   playerModelTransform: {fileID: 1796968863}
   animator: {fileID: 1796968862}
+  spineBones:
+  - {fileID: 2023644455}
+  - {fileID: 1173138207}
+  - {fileID: 274086831}
+  - {fileID: 1396656733}
+  - {fileID: 534705938}
+  - {fileID: 1811843336}
   mouseSensitivity: 0.1
   gravity: -9.81
   jumpHeight: 1
@@ -608,7 +635,7 @@ MonoBehaviour:
   groundDeceleration: 75
   airDeceleration: 10
   maxWalkSpeed: 4
-  maxSprintSpeed: 8
+  maxSprintSpeed: 6
   maxStamina: 100
   staminaDrainRate: 15
   staminaRegenRate: 2.5
@@ -721,6 +748,16 @@ Animator:
 --- !u!4 &1796968863 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1811843336 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1662616379218952914, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
+  m_PrefabInstance: {fileID: 1796968860}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2023644455 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1480070881545233990, guid: 8b2d6d0b947e8364dae397d4a1d5e1c3, type: 3}
   m_PrefabInstance: {fileID: 1796968860}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
