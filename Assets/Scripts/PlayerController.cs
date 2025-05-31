@@ -16,6 +16,8 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     private readonly int hashIsWalking = Animator.StringToHash("isWalking");
     private readonly int hashIsRunning = Animator.StringToHash("isRunning");
     private readonly int hashIsJumping = Animator.StringToHash("isJumping");
+    private readonly int hashIsCrouching = Animator.StringToHash("isCrouching");
+    private readonly int hashIsCrouchWalking = Animator.StringToHash("isCrouchWalking");
 
     [Header("Settings")]
     public float mouseSensitivity = 0.1f;
@@ -322,7 +324,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             jumpRequested = false;
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
-        else if (GetDistanceToGround() > 0.5f)
+        else if (GetDistanceToGround() > 0.2f)
         {
             jumpRequested = false;
         }
@@ -397,14 +399,18 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     {
         bool grounded = controller.isGrounded;
 
-        bool walking = moveInput.magnitude > 0.1f && grounded && !isSprinting;
+        bool walking = moveInput.magnitude > 0.1f && grounded && !isSprinting && !isCrouching;
 
-        bool running = moveInput.magnitude > 0.1f && grounded && isSprinting;
+        bool running = moveInput.magnitude > 0.1f && grounded && isSprinting && !isCrouching;
 
         bool jumping = !grounded;
+        bool crouching = isCrouching;
+        bool crouchWalking = moveInput.magnitude > 0.1f && isCrouching;
 
         animator.SetBool(hashIsWalking, walking);
         animator.SetBool(hashIsRunning, running);
         animator.SetBool(hashIsJumping, jumping);
+        animator.SetBool(hashIsCrouching, crouching);
+        animator.SetBool(hashIsCrouchWalking, crouchWalking);
     }
 }
