@@ -10,19 +10,17 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     public Transform playerModelTransform;
     public Animator animator;
     public Transform[] spineBones;
+    public PlayerStats playerStats;
     private float maxSpineBendAngle = 30f;
     private Quaternion[] _initialSpineRots;
 
+    // Animation hashes
     private readonly int hashIsWalking = Animator.StringToHash("isWalking");
     private readonly int hashIsRunning = Animator.StringToHash("isRunning");
     private readonly int hashIsJumping = Animator.StringToHash("isJumping");
     private readonly int hashIsCrouching = Animator.StringToHash("isCrouching");
     private readonly int hashIsCrouchWalking = Animator.StringToHash("isCrouchWalking");
 
-    [Header("Settings")]
-    public float mouseSensitivity = 0.1f;
-    public float gravity = -9.81f;
-    public float jumpHeight = 1f;
     private bool jumpRequested = false;
     private bool sprintRequested = false;
     private bool isSprinting = false;
@@ -34,28 +32,16 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     private Vector2 lookInput;
     private float verticalVelocity = 0f;
     private float xRotation = 0f;
-    public float groundAcceleration = 30f;
-    public float airAcceleration = 15f;
-    public float groundDeceleration = 75f;
-    public float airDeceleration = 10f;
-    public float maxWalkSpeed = 4f;
-    public float maxSprintSpeed = 6f;
-    public float maxStamina = 100f;
-    public float staminaDrainRate = 15f;
-    public float staminaRegenRate = 2.5f;
     private float currentStamina;
     private Vector3 currentVelocity = Vector3.zero;
     private Vector3 lastPosition;
     private bool crouchRequested = false;
     private bool isCrouching = false;
-    public float maxCrouchSpeed = 1.5f;
-    public float standHeight = 1.8f;
     private float crouchHeight;
     private float standCameraHeight;
     private float crouchCameraHeight;
     private float currentHeight;
     private float currentCameraHeight;
-    public float crouchTransitionSpeed = 10f;
 
     void Awake()
     {
@@ -72,24 +58,24 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        crouchHeight = standHeight * 0.5f;
+        crouchHeight = playerStats.StandHeight * 0.5f;
         crouchCameraHeight = crouchHeight * 0.8f;
-        standCameraHeight = standHeight * 0.9f;
+        standCameraHeight = playerStats.StandHeight * 0.9f;
 
-        currentHeight = standHeight;
+        currentHeight = playerStats.StandHeight;
         currentCameraHeight = standCameraHeight;
 
-        controller.height = standHeight;
-        controller.center = new Vector3(0, standHeight / 2f, 0);
+        controller.height = playerStats.StandHeight;
+        controller.center = new Vector3(0, playerStats.StandHeight / 2f, 0);
 
         // Set height of player model
         playerModelTransform.localPosition = Vector3.zero;
-        playerModelTransform.localScale = new Vector3(standHeight, standHeight, standHeight);
+        playerModelTransform.localScale = new Vector3(playerStats.StandHeight, playerStats.StandHeight, playerStats.StandHeight);
 
         // Set camera height
         cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, standCameraHeight, cameraTransform.localPosition.z);
 
-        currentStamina = maxStamina;
+        currentStamina = playerStats.MaxStamina;
         lastPosition = transform.position;
 
         _initialSpineRots = new Quaternion[spineBones.Length];
@@ -136,8 +122,8 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
     private void HandleLook()
     {
-        float mouseX = lookInput.x * mouseSensitivity;
-        float mouseY = lookInput.y * mouseSensitivity;
+        float mouseX = lookInput.x * playerStats.MouseSensitivity;
+        float mouseY = lookInput.y * playerStats.MouseSensitivity;
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
@@ -152,7 +138,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             float weight = (float)(i + 1) / spineBones.Length;
             float bendAngle = normalizedPitch * maxSpineBendAngle * weight;
             // negative so that looking up (xRotation<0) bends spine backwards
-            spineBones[i].localRotation = _initialSpineRots[i] * 
+            spineBones[i].localRotation = _initialSpineRots[i] *
                                           Quaternion.Euler(bendAngle, 0f, 0f);
         }
     }
@@ -161,9 +147,9 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     {
         // 1) Build input and desired velocity
         Vector3 inputDirection = new Vector3(moveInput.x, 0f, moveInput.y);
-        Vector3 desiredWalkVelocity = transform.TransformDirection(inputDirection.normalized) * maxWalkSpeed;
-        Vector3 desiredSprintVelocity = transform.TransformDirection(inputDirection.normalized) * maxSprintSpeed;
-        Vector3 desiredCrouchVelocity = transform.TransformDirection(inputDirection.normalized) * maxCrouchSpeed;
+        Vector3 desiredWalkVelocity = transform.TransformDirection(inputDirection.normalized) * playerStats.MaxWalkSpeed;
+        Vector3 desiredSprintVelocity = transform.TransformDirection(inputDirection.normalized) * playerStats.MaxSprintSpeed;
+        Vector3 desiredCrouchVelocity = transform.TransformDirection(inputDirection.normalized) * playerStats.MaxCrouchSpeed;
 
         lastPosition = transform.position;
 
@@ -180,7 +166,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredWalkVelocity,
-                        groundDeceleration * Time.deltaTime
+                        playerStats.GroundDeceleration * Time.deltaTime
                     );
                 }
                 else
@@ -189,7 +175,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredWalkVelocity,
-                        groundAcceleration * Time.deltaTime
+                        playerStats.GroundAcceleration * Time.deltaTime
                     );
                 }
             }
@@ -199,7 +185,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 currentVelocity = Vector3.MoveTowards(
                     currentVelocity,
                     desiredWalkVelocity,
-                    airAcceleration * Time.deltaTime
+                    playerStats.AirAcceleration * Time.deltaTime
                 );
             }
         }
@@ -215,7 +201,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredSprintVelocity,
-                        groundDeceleration * Time.deltaTime
+                        playerStats.GroundDeceleration * Time.deltaTime
                     );
                 }
                 else
@@ -224,7 +210,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredSprintVelocity,
-                        groundAcceleration * Time.deltaTime
+                        playerStats.GroundAcceleration * Time.deltaTime
                     );
                 }
             }
@@ -234,7 +220,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 currentVelocity = Vector3.MoveTowards(
                     currentVelocity,
                     desiredSprintVelocity,
-                    airAcceleration * Time.deltaTime
+                    playerStats.AirAcceleration * Time.deltaTime
                 );
             }
         }
@@ -250,7 +236,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredCrouchVelocity,
-                        groundDeceleration * Time.deltaTime
+                        playerStats.GroundDeceleration * Time.deltaTime
                     );
                 }
                 else
@@ -259,7 +245,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                     currentVelocity = Vector3.MoveTowards(
                         currentVelocity,
                         desiredCrouchVelocity,
-                        groundAcceleration * Time.deltaTime
+                        playerStats.GroundAcceleration * Time.deltaTime
                     );
                 }
             }
@@ -269,7 +255,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
                 currentVelocity = Vector3.MoveTowards(
                     currentVelocity,
                     desiredCrouchVelocity,
-                    airAcceleration * Time.deltaTime
+                    playerStats.AirAcceleration * Time.deltaTime
                 );
             }
         }
@@ -279,11 +265,11 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
             float deceleration;
             if (controller.isGrounded)
             {
-                deceleration = groundDeceleration;
+                deceleration = playerStats.GroundDeceleration;
             }
             else
             {
-                deceleration = airDeceleration;
+                deceleration = playerStats.AirDeceleration;
             }
 
             currentVelocity = Vector3.MoveTowards(
@@ -302,18 +288,18 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         {
             verticalVelocity = -2f;
         }
-        verticalVelocity += gravity * Time.deltaTime;
+        verticalVelocity += playerStats.Gravity * Time.deltaTime;
 
         // Drain stamina
         if (currentVelocity.magnitude > 0f && isSprinting && lastPosition != transform.position)
         {
-            currentStamina -= staminaDrainRate * Time.deltaTime;
+            currentStamina -= playerStats.StaminaDrainRate * Time.deltaTime;
             currentStamina = Mathf.Max(currentStamina, 0f);
         }
         else
         {
-            currentStamina += staminaRegenRate * Time.deltaTime;
-            currentStamina = Mathf.Min(currentStamina, maxStamina);
+            currentStamina += playerStats.StaminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Min(currentStamina, playerStats.MaxStamina);
         }
     }
 
@@ -322,7 +308,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
         if (jumpRequested && controller.isGrounded)
         {
             jumpRequested = false;
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            verticalVelocity = Mathf.Sqrt(playerStats.JumpHeight * -2f * playerStats.Gravity);
         }
         else if (GetDistanceToGround() > 0.2f)
         {
@@ -345,15 +331,15 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
 
     private void HandleCrouch()
     {
-        float targetHeight = isCrouching ? crouchHeight : standHeight;
+        float targetHeight = isCrouching ? crouchHeight : playerStats.StandHeight;
         float targetCameraY = isCrouching ? crouchCameraHeight : standCameraHeight;
 
         // Smoothly lerp height and camera
-        currentHeight = Mathf.Lerp(currentHeight, targetHeight, Time.deltaTime * crouchTransitionSpeed);
+        currentHeight = Mathf.Lerp(currentHeight, targetHeight, Time.deltaTime * playerStats.CrouchTransitionSpeed);
         controller.height = currentHeight;
         controller.center = new Vector3(0, currentHeight / 2f, 0);
 
-        currentCameraHeight = Mathf.Lerp(currentCameraHeight, targetCameraY, Time.deltaTime * crouchTransitionSpeed);
+        currentCameraHeight = Mathf.Lerp(currentCameraHeight, targetCameraY, Time.deltaTime * playerStats.CrouchTransitionSpeed);
         cameraTransform.localPosition = new Vector3(
             cameraTransform.localPosition.x,
             currentCameraHeight,
@@ -390,7 +376,7 @@ public class PlayerController : MonoBehaviour, PlayerControls.IPlayerActions
     private bool CanStandUp()
     {
         Vector3 top = controller.transform.position + controller.center + Vector3.up * (controller.height / 2f);
-        float distanceToCheck = standHeight - crouchHeight;
+        float distanceToCheck = playerStats.StandHeight - crouchHeight;
 
         return !Physics.SphereCast(top, controller.radius, Vector3.up, out _, distanceToCheck);
     }

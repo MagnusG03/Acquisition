@@ -583,6 +583,7 @@ GameObject:
   - component: {fileID: 1618195934}
   - component: {fileID: 1618195933}
   - component: {fileID: 1618195935}
+  - component: {fileID: 1618195936}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -654,21 +655,20 @@ MonoBehaviour:
   - {fileID: 2036938291}
   - {fileID: 2116235028}
   - {fileID: 594860303}
-  mouseSensitivity: 0.1
-  gravity: -9.81
-  jumpHeight: 1
-  groundAcceleration: 30
-  airAcceleration: 15
-  groundDeceleration: 75
-  airDeceleration: 10
-  maxWalkSpeed: 4
-  maxSprintSpeed: 6
-  maxStamina: 100
-  staminaDrainRate: 15
-  staminaRegenRate: 2.5
-  maxCrouchSpeed: 1.5
-  standHeight: 1.8
-  crouchTransitionSpeed: 10
+  playerStats: {fileID: 1618195936}
+--- !u!114 &1618195936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618195930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8865ffe81ba1b104fa0bd01ea951a680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ignoreSavedData: 1
 --- !u!1001 &1631267259
 PrefabInstance:
   m_ObjectHideFlags: 0
