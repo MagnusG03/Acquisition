@@ -11,7 +11,7 @@ public class PlayerStatsData
     public float groundDeceleration = 75f;
     public float airDeceleration = 10f;
     public float maxWalkSpeed = 4f;
-    public float maxSprintSpeed = 6f;
+    public float maxSprintSpeed = 7f;
     public float maxStamina = 100f;
     public float staminaDrainRate = 15f;
     public float staminaRegenRate = 2.5f;
